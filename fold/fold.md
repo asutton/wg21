@@ -103,7 +103,7 @@ The proposal adds a new kind of *primary-expression*, called a
 
 The arguments are expanded over the `+` operator as left fold. That is:
 
-    ((args$0 + args$1) + ...) + $argsn
+    ((args$0 + args$1) + ...) + args$n
 
 Or, you can write the expression with the parameter pack on the right
 of the operator, like this:
@@ -113,7 +113,7 @@ of the operator, like this:
 With this spelling, the arguments are expanded over the operator as
 a right fold:
 
-    args$0 + (... + ($args$n-1 + $argsn))
+    args$0 + (... + (args$n-1 + args$n))
 
 In order to support expansions over a parameter pack and other operands, you 
 can also use the mathematically oriented phrasing:
