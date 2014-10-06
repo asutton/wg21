@@ -115,7 +115,27 @@ a right fold:
 
     args$0 + (... + (args$n-1 + args$n))
 
-In order to support expansions over a parameter pack and other operands, you 
+The fold of an empty parameter pack evaluates to a specific value. The choice
+of value depends on the operator. The set of operators and their empty
+expansions are in the table below.
+
+<table>
+<tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
+<tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&</tt></td>  <td><tt>-1</tt></td>                       </tr>
+<tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&&</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>||</tt></td> <td><tt>false</tt></td>                    </tr>
+<tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
+</table>
+
+If a fold of an empty parameter pack is produced for any other operator, the
+program is ill-formed. However, all binary operators are supported to allow
+the use of folds over arbitrary overloaded operators.
+
+In order to support expansions over a parameter pack and other operands, or
+to customize the behavior for a fold over an empty parameter pack, you
 can also use the mathematically oriented phrasing:
 
     (args + ... + an)
@@ -125,24 +145,6 @@ the sequence. Only one of the operands can be a parameter pack. You can
 also expand a right fold.
 
     (a0 + ... + args)
-
-Folds can only be performed on a select set of binary operations. Additionally,
-the fold of an empty parameter pack evaluates to a specific value. The choice
-of value depends on the operator. The set of operators and their empty
-expansions are in the table below.
-
-
-<table>
-<tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
-<tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
-<tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
-<tr><td><tt>&</tt></td>  <td><tt>1</tt></td>                        </tr>
-<tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
-<tr><td><tt>&&</tt></td> <td><tt>false</tt></td>                    </tr>
-<tr><td><tt>||</tt></td> <td><tt>true</tt></td>                     </tr>
-<tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
-</table>
-
 
 ## Wording
 
@@ -168,7 +170,9 @@ a binary operator.
       ( <i>cast-expression</i> <i>fold-operator</i> ... <i>fold-operator</i> <i>cast-expression</i> )
 
 <i>fold-operator</i>: one of
-  * + & | && || ,</pre>
+    +  -  *  /  %  ^  &  |  ~  =  &lt;  >  &lt;&lt;  >>
+    +=  -=  *=  /=  %=  ^=  &=  |=  &lt;&lt;=  >>=
+    ==  !=  <=  >=  &&  ||  ,  .*  ->*</pre>
 
 An expression of the form `(e op ...)` where `op` is a *fold-operator* is
 called a *left fold*. The *cast-expression* `e` shall contain an
@@ -190,16 +194,17 @@ expression is a left fold and `e2` is rightmost operand the expansion. If
 fold and `e1` is the leftmost operand in the expansion.
 
 When the unexpanded parameter pack in a fold expression expands to an
-empty sequence, the value the expression is shown in Table N.
+empty sequence, the value the expression is shown in Table N; the program
+is ill-formed if the operator is not listed in Table N.
 
 <table>
 <caption>Table N. Value of folding empty sequences</caption>
 <tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
 <tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
 <tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
-<tr><td><tt>&</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>&</tt></td>  <td><tt>-1</tt></td>                       </tr>
 <tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
-<tr><td><tt>&&</tt></td> <td><tt>false</tt></td>                    </tr>
-<tr><td><tt>||</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>&&</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>||</tt></td> <td><tt>false</tt></td>                    </tr>
 <tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
 </table>
