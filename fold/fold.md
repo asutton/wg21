@@ -39,7 +39,7 @@ There are a number of binary operators for which folding can defined. One
 such is the `,` operator. The `,` operator can be used, for example, to apply 
 a function to a sequence of elements in a parameter pack. For example, 
 printing can
-be don like this:
+be done like this:
 
     template<typename T> 
       void print(const T& x) { cout << x << '\n'; }
@@ -103,7 +103,7 @@ The proposal adds a new kind of *primary-expression*, called a
 
 The arguments are expanded over the `+` operator as left fold. That is:
 
-    ((args$0 + args$1) + ...) + $argsn
+    ((args$0 + args$1) + ...) + args$n
 
 Or, you can write the expression with the parameter pack on the right
 of the operator, like this:
@@ -113,7 +113,7 @@ of the operator, like this:
 With this spelling, the arguments are expanded over the operator as
 a right fold:
 
-    args$0 + (... + ($args$n-1 + $argsn))
+    args$0 + (... + (args$n-1 + args$n))
 
 In order to support expansions over a parameter pack and other operands, you 
 can also use the mathematically oriented phrasing:
@@ -133,14 +133,14 @@ expansions are in the table below.
 
 
 <table>
-<tr><th>Operator</th> <th>Value when parameter pack is empty</th></tr>
-<tr><td>`\*`</td>     <td>`1`</td>                               </tr>
-<tr><td>`\+`</td>     <td>`0`</td>                               </tr>
-<tr><td>`&`</td>      <td>`1`</td>                               </tr>
-<tr><td>`|`</td>      <td>`0`</td>                               </tr>
-<tr><td>`&&;`</td>    <td>`false`</td>                           </tr>
-<tr><td>`||`</td>     <td>`true`</td>                            </tr>
-<tr><td>`,`</td>      <td>`void()`</td>                          </tr>
+<tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
+<tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&&</tt></td> <td><tt>false</tt></td>                    </tr>
+<tr><td><tt>||</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
 </table>
 
 
@@ -152,10 +152,8 @@ expansions are in the table below.
 Modify the grammar of *primary-expression* in [expr.prim] to include
 fold expressions.
 
-<code>
-<i>primary-expression</i>:<br/>
-    <i>fold-expression</i>
-</code>
+<pre><i>primary-expression</i>:
+    <i>fold-expression</i></pre>
 
 Add the a new subsection to [expr.prim] called "Fold expressions"
 
@@ -164,23 +162,13 @@ Add the a new subsection to [expr.prim] called "Fold expressions"
 A fold expression allows a template parameter pack ([temp.variadic]) over 
 a binary operator.
 
-<code>
-<i>fold-expression</i>:<br/>
-      ( <i>cast-expression</i> <i>fold-operator</i> ... )<br/>
-      ( ... <i>fold-operator</i> <i>cast-expression</i> )<br/>
-      ( <i>cast-expression</i> <i>fold-operator</i> ... <i>fold-operator</i> <i>cast-expression</i> )<br/>
+<pre><i>fold-expression</i>:
+      ( <i>cast-expression</i> <i>fold-operator</i> ... )
+      ( ... <i>fold-operator</i> <i>cast-expression</i> )
+      ( <i>cast-expression</i> <i>fold-operator</i> ... <i>fold-operator</i> <i>cast-expression</i> )
 
-<br/>
-
-<i>fold-operator</i>:<br/>
-  *<br/>
-  +<br/>
-  &<br/>
-  |<br/>
-  &&<br/>
-  ||<br/>
-  ,<br/>
-</code>
+<i>fold-operator</i>: one of
+  * + & | && || ,</pre>
 
 An expression of the form `(e op ...)` where `op` is a *fold-operator* is
 called a *left fold*. The *cast-expression* `e` shall contain an
@@ -206,12 +194,12 @@ empty sequence, the value the expression is shown in Table N.
 
 <table>
 <caption>Table N. Value of folding empty sequences</caption>
-<tr><th>Operator</th> <th>Value when parameter pack is empty</th></tr>
-<tr><td>`\*`</td>     <td>`1`</td>                               </tr>
-<tr><td>`\+`</td>     <td>`0`</td>                               </tr>
-<tr><td>`&`</td>      <td>`1`</td>                               </tr>
-<tr><td>`|`</td>      <td>`0`</td>                               </tr>
-<tr><td>`&&;`</td>    <td>`false`</td>                           </tr>
-<tr><td>`||`</td>     <td>`true`</td>                            </tr>
-<tr><td>`,`</td>      <td>`void()`</td>                          </tr>
+<tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
+<tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&&</tt></td> <td><tt>false</tt></td>                    </tr>
+<tr><td><tt>||</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
 </table>
