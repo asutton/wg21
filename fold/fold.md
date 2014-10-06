@@ -133,14 +133,14 @@ expansions are in the table below.
 
 
 <table>
-<tr><th>Operator</th> <th>Value when parameter pack is empty</th></tr>
-<tr><td>`\*`</td>     <td>`1`</td>                               </tr>
-<tr><td>`\+`</td>     <td>`0`</td>                               </tr>
-<tr><td>`&`</td>      <td>`1`</td>                               </tr>
-<tr><td>`|`</td>      <td>`0`</td>                               </tr>
-<tr><td>`&&;`</td>    <td>`false`</td>                           </tr>
-<tr><td>`||`</td>     <td>`true`</td>                            </tr>
-<tr><td>`,`</td>      <td>`void()`</td>                          </tr>
+<tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
+<tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&&</tt></td> <td><tt>false</tt></td>                    </tr>
+<tr><td><tt>||</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
 </table>
 
 
@@ -194,12 +194,12 @@ empty sequence, the value the expression is shown in Table N.
 
 <table>
 <caption>Table N. Value of folding empty sequences</caption>
-<tr><th>Operator</th> <th>Value when parameter pack is empty</th></tr>
-<tr><td>`\*`</td>     <td>`1`</td>                               </tr>
-<tr><td>`\+`</td>     <td>`0`</td>                               </tr>
-<tr><td>`&`</td>      <td>`1`</td>                               </tr>
-<tr><td>`|`</td>      <td>`0`</td>                               </tr>
-<tr><td>`&&;`</td>    <td>`false`</td>                           </tr>
-<tr><td>`||`</td>     <td>`true`</td>                            </tr>
-<tr><td>`,`</td>      <td>`void()`</td>                          </tr>
+<tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
+<tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
+<tr><td><tt>&&</tt></td> <td><tt>false</tt></td>                    </tr>
+<tr><td><tt>||</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
 </table>
