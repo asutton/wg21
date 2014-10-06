@@ -152,10 +152,8 @@ expansions are in the table below.
 Modify the grammar of *primary-expression* in [expr.prim] to include
 fold expressions.
 
-<code>
-<i>primary-expression</i>:<br/>
-    <i>fold-expression</i>
-</code>
+<pre><i>primary-expression</i>:
+    <i>fold-expression</i></pre>
 
 Add the a new subsection to [expr.prim] called "Fold expressions"
 
@@ -164,23 +162,13 @@ Add the a new subsection to [expr.prim] called "Fold expressions"
 A fold expression allows a template parameter pack ([temp.variadic]) over 
 a binary operator.
 
-<code>
-<i>fold-expression</i>:<br/>
-      ( <i>cast-expression</i> <i>fold-operator</i> ... )<br/>
-      ( ... <i>fold-operator</i> <i>cast-expression</i> )<br/>
-      ( <i>cast-expression</i> <i>fold-operator</i> ... <i>fold-operator</i> <i>cast-expression</i> )<br/>
+<pre><i>fold-expression</i>:
+      ( <i>cast-expression</i> <i>fold-operator</i> ... )
+      ( ... <i>fold-operator</i> <i>cast-expression</i> )
+      ( <i>cast-expression</i> <i>fold-operator</i> ... <i>fold-operator</i> <i>cast-expression</i> )
 
-<br/>
-
-<i>fold-operator</i>:<br/>
-  *<br/>
-  +<br/>
-  &<br/>
-  |<br/>
-  &&<br/>
-  ||<br/>
-  ,<br/>
-</code>
+<i>fold-operator</i>: one of
+  * + & | && || ,</pre>
 
 An expression of the form `(e op ...)` where `op` is a *fold-operator* is
 called a *left fold*. The *cast-expression* `e` shall contain an
