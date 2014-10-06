@@ -123,10 +123,10 @@ expansions are in the table below.
 <tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
 <tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
 <tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
-<tr><td><tt>&</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>&</tt></td>  <td><tt>-1</tt></td>                       </tr>
 <tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
-<tr><td><tt>&&</tt></td> <td><tt>false</tt></td>                    </tr>
-<tr><td><tt>||</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>&&</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>||</tt></td> <td><tt>false</tt></td>                    </tr>
 <tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
 </table>
 
@@ -202,9 +202,9 @@ is ill-formed if the operator is not listed in Table N.
 <tr><th>Operator</th>    <th>Value when parameter pack is empty</th></tr>
 <tr><td><tt>*</tt></td>  <td><tt>1</tt></td>                        </tr>
 <tr><td><tt>+</tt></td>  <td><tt>0</tt></td>                        </tr>
-<tr><td><tt>&</tt></td>  <td><tt>1</tt></td>                        </tr>
+<tr><td><tt>&</tt></td>  <td><tt>-1</tt></td>                       </tr>
 <tr><td><tt>|</tt></td>  <td><tt>0</tt></td>                        </tr>
-<tr><td><tt>&&</tt></td> <td><tt>false</tt></td>                    </tr>
-<tr><td><tt>||</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>&&</tt></td> <td><tt>true</tt></td>                     </tr>
+<tr><td><tt>||</tt></td> <td><tt>false</tt></td>                    </tr>
 <tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
 </table>
