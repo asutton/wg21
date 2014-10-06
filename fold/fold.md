@@ -39,7 +39,7 @@ There are a number of binary operators for which folding can defined. One
 such is the `,` operator. The `,` operator can be used, for example, to apply 
 a function to a sequence of elements in a parameter pack. For example, 
 printing can
-be don like this:
+be done like this:
 
     template<typename T> 
       void print(const T& x) { cout << x << '\n'; }
