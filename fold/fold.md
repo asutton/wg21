@@ -1,6 +1,13 @@
 Folding expressions
 ===================
 
+<div style="text-align:center">
+Andrew Sutton<br/>
+Richard Smith<br/>
+Date: 2014-10-07<br/>
+Document number: NXXX
+</div>
+
 ## Introduction
 
 This paper introduces a new kind of primary expression that allows
@@ -186,12 +193,36 @@ unexpanded parameter pack. A right fold expands as expression
 `e$1 op (... (e$n-1 op e$n))` where `$n` is an index into the unexpanded
 parameter pack.
 
+\[ *Example:*
+
+    template<typename... Args>
+      bool all(Args... args) { return (args && ...); }
+
+    all(true, true, true, false);
+
+Within the instantiation of `all`, the returned expression expands to
+`((true && true) && true) && false`, which evalutes to `false`.
+-- *end example* \]
+
 In an expression of the form `(e1 op ... op e2)` either `e1` shall have
 an unexpanded parameter pack or `e2` shall have an unexpanded parameter
 pack, but not both. If `e1` contains an unexpanded parameter pack, the 
 expression is a left fold and `e2` is rightmost operand the expansion. If
 `e2` contains an unexpanded parameter pack, the expression is a right
 fold and `e1` is the leftmost operand in the expansion.
+
+\[ *Example:*
+
+    template<typename... Args>
+      bool f(Args... args) { 
+        return (true + ... + args); // *OK*
+      } 
+
+    template<typename... Args>
+      bool f(Args... args) { 
+        return (args &lt ... && args); // *error: both operands contain unexpanded
+      }                                // parameter packs
+-- *end example* \]
 
 When the unexpanded parameter pack in a fold expression expands to an
 empty sequence, the value the expression is shown in Table N; the program
