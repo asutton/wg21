@@ -166,7 +166,7 @@ fold expressions.
 
 Add the a new subsection to [expr.prim] called "Fold expressions".
 
-#### 5.1.3 Fold expressions \[expr.prim.fold\]
+#### 5.1.3 Fold expressions [expr.prim.fold]
 
 A fold expression allows a template parameter pack ([temp.variadic]) over 
 a binary operator.
