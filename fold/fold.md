@@ -2,10 +2,9 @@ Folding expressions
 ===================
 
 <div style="text-align:center">
-Andrew Sutton<br/>
-Richard Smith<br/>
+Andrew Sutton, Richard Smith<br/>
 Date: 2014-10-07<br/>
-Document number: NXXX
+Document number: N4195
 </div>
 
 ## Introduction
@@ -156,15 +155,16 @@ also expand a right fold.
 ## Wording
 
 
-### 5.1. Primary expressions \[expr.prim\]
+### 5.1. Primary expressions [expr.prim]
 
 Modify the grammar of *primary-expression* in [expr.prim] to include
 fold expressions.
 
 <pre><i>primary-expression</i>:
-    <i>fold-expression</i></pre>
+    <i>fold-expression</i>
+</pre>
 
-Add the a new subsection to [expr.prim] called "Fold expressions"
+Add the a new subsection to [expr.prim] called "Fold expressions".
 
 #### 5.1.3 Fold expressions \[expr.prim.fold\]
 
@@ -179,7 +179,8 @@ a binary operator.
 <i>fold-operator</i>: one of
     +  -  *  /  %  ^  &  |  ~  =  &lt;  >  &lt;&lt;  >>
     +=  -=  *=  /=  %=  ^=  &=  |=  &lt;&lt;=  >>=
-    ==  !=  <=  >=  &&  ||  ,  .*  ->*</pre>
+    ==  !=  <=  >=  &&  ||  ,  .*  ->*
+</pre>
 
 An expression of the form `(e op ...)` where `op` is a *fold-operator* is
 called a *left fold*. The *cast-expression* `e` shall contain an
@@ -191,27 +192,23 @@ An expression of the form `(... op e)` where `op` is a *fold-operator* is
 called a *right-fold*. The *cast-expression* `e` shall contain an
 unexpanded parameter pack. A right fold expands as expression
 `e$1 op (... (e$n-1 op e$n))` where `$n` is an index into the unexpanded
-parameter pack.
+parameter pack. <br/> [ <i>Example:</i>
+<pre>
+  template<typename... Args>
+    bool all(Args... args) { return (args && ...); }
 
-\[ *Example:*
-
-    template<typename... Args>
-      bool all(Args... args) { return (args && ...); }
-
-    all(true, true, true, false);
-
+  all(true, true, true, false);
+</pre>
 Within the instantiation of `all`, the returned expression expands to
 `((true && true) && true) && false`, which evalutes to `false`.
--- *end example* \]
+&mdash; <i>end example</i> ]
 
 In an expression of the form `(e1 op ... op e2)` either `e1` shall have
 an unexpanded parameter pack or `e2` shall have an unexpanded parameter
 pack, but not both. If `e1` contains an unexpanded parameter pack, the 
 expression is a left fold and `e2` is rightmost operand the expansion. If
 `e2` contains an unexpanded parameter pack, the expression is a right
-fold and `e1` is the leftmost operand in the expansion.
-
-\[ *Example:*
+fold and `e1` is the leftmost operand in the expansion. [ <i>Example</i>:
 <pre>
 template&lt;typename... Args>
   bool f(Args... args) { 
@@ -220,10 +217,9 @@ template&lt;typename... Args>
 
 template&lt;typename... Args>
   bool f(Args... args) { 
-    return (args && ... && args); // <i>error: both operands contain unexpanded</i>
-  }                               // <i>parameter packs</i>
+    return (args && ... && args); // <i>error: both operands contain unexpanded parameter packs</i>
 </pre>                              
--- *end example* \]
+&mdash; <i>end example</i>]
 
 When the unexpanded parameter pack in a fold expression expands to an
 empty sequence, the value the expression is shown in Table N; the program
@@ -240,3 +236,5 @@ is ill-formed if the operator is not listed in Table N.
 <tr><td><tt>||</tt></td> <td><tt>false</tt></td>                    </tr>
 <tr><td><tt>,</tt></td>  <td><tt>void()</tt></td>                   </tr>
 </table>
+
+</body>
