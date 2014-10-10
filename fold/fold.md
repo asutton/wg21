@@ -212,16 +212,17 @@ expression is a left fold and `e2` is rightmost operand the expansion. If
 fold and `e1` is the leftmost operand in the expansion.
 
 \[ *Example:*
+<pre>
+template&lt;typename... Args>
+  bool f(Args... args) { 
+    return (true + ... + args); // <i>OK</i>
+  } 
 
-    template<typename... Args>
-      bool f(Args... args) { 
-        return (true + ... + args); // *OK*
-      } 
-
-    template<typename... Args>
-      bool f(Args... args) { 
-        return (args &lt ... && args); // *error: both operands contain unexpanded
-      }                                // parameter packs
+template&lt;typename... Args>
+  bool f(Args... args) { 
+    return (args && ... && args); // <i>error: both operands contain unexpanded</i>
+  }                               // <i>parameter packs</i>
+</pre>                              
 -- *end example* \]
 
 When the unexpanded parameter pack in a fold expression expands to an
