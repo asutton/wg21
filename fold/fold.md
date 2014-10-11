@@ -4,7 +4,7 @@ Folding expressions
 <div style="text-align:center">
 Andrew Sutton, Richard Smith<br/>
 Date: 2014-10-07<br/>
-Document number: N4195
+Document number: N4191
 </div>
 
 ## Introduction
