@@ -11,17 +11,14 @@ Document number: N4191
 
 This paper introduces a new kind of primary expression that allows
 parameter packs to be expanded as a sequence of operators.
-We call these "fold expressions", named after then ubiquitous fold
+We call these "fold expressions", named after the ubiquitous fold
 algorithm that applies a binary operator to a sequence values
 (also called `accumulate` in the standard library).
 
 Today, when we want to compute folds over a parameter pack, we have to 
-resort to a handful of overloads of a variadic templates in order to compute 
+resort to a handful of overloads of a variadic template in order to compute 
 the result. For example, a simple summation might be implemented like
 this:
-
-    template<typename... Ts>
-      auto sum(Ts... args);
 
     auto sum() { return 0; }
 
@@ -189,7 +186,7 @@ unexpanded parameter pack. A left fold expands as expression
 parameter pack.
 
 An expression of the form `(... op e)` where `op` is a *fold-operator* is
-called a *right-fold*. The *cast-expression* `e` shall contain an
+called a *right fold*. The *cast-expression* `e` shall contain an
 unexpanded parameter pack. A right fold expands as expression
 `e$1 op (... (e$n-1 op e$n))` where `$n` is an index into the unexpanded
 parameter pack. <br/> [ <i>Example:</i>
@@ -203,10 +200,10 @@ Within the instantiation of `all`, the returned expression expands to
 `((true && true) && true) && false`, which evalutes to `false`.
 &mdash; <i>end example</i> ]
 
-In an expression of the form `(e1 op ... op e2)` either `e1` shall have
-an unexpanded parameter pack or `e2` shall have an unexpanded parameter
-pack, but not both. If `e1` contains an unexpanded parameter pack, the 
-expression is a left fold and `e2` is rightmost operand the expansion. If
+In an expression of the form `(e1 op ... op e2)` either `e1` shall contain
+an unexpanded parameter pack or `e2` shall contain an unexpanded parameter
+pack, but not both. If `e1` contains an unexpanded parameter pack, the
+expression is a left fold and `e2` is the rightmost operand the expansion. If
 `e2` contains an unexpanded parameter pack, the expression is a right
 fold and `e1` is the leftmost operand in the expansion. [ <i>Example</i>:
 <pre>
