@@ -16,19 +16,16 @@ Document number: N4191
 
 <p>This paper introduces a new kind of primary expression that allows
 parameter packs to be expanded as a sequence of operators.
-We call these "fold expressions", named after then ubiquitous fold
+We call these "fold expressions", named after the ubiquitous fold
 algorithm that applies a binary operator to a sequence values
 (also called <code>accumulate</code> in the standard library).</p>
 
 <p>Today, when we want to compute folds over a parameter pack, we have to 
-resort to a handful of overloads of a variadic templates in order to compute 
+resort to a handful of overloads of a variadic template in order to compute 
 the result. For example, a simple summation might be implemented like
 this:</p>
 
-<pre><code>template&lt;typename... Ts&gt;
-  auto sum(Ts... args);
-
-auto sum() { return 0; }
+<pre><code>auto sum() { return 0; }
 
 template&lt;typename T&gt;
   auto sum(T t) { return t; }
@@ -203,7 +200,7 @@ unexpanded parameter pack. A left fold expands as expression
 parameter pack.</p>
 
 <p>An expression of the form <code>(... op e)</code> where <code>op</code> is a <em>fold-operator</em> is
-called a <em>right-fold</em>. The <em>cast-expression</em> <code>e</code> shall contain an
+called a <em>right fold</em>. The <em>cast-expression</em> <code>e</code> shall contain an
 unexpanded parameter pack. A right fold expands as expression
 <code>e$1 op (... (e$n-1 op e$n))</code> where <code>$n</code> is an index into the unexpanded
 parameter pack. <br/> [ <i>Example:</i></p>
@@ -219,10 +216,10 @@ parameter pack. <br/> [ <i>Example:</i></p>
 <code>((true &amp;&amp; true) &amp;&amp; true) &amp;&amp; false</code>, which evalutes to <code>false</code>.
 &mdash; <i>end example</i> ]</p>
 
-<p>In an expression of the form <code>(e1 op ... op e2)</code> either <code>e1</code> shall have
-an unexpanded parameter pack or <code>e2</code> shall have an unexpanded parameter
-pack, but not both. If <code>e1</code> contains an unexpanded parameter pack, the 
-expression is a left fold and <code>e2</code> is rightmost operand the expansion. If
+<p>In an expression of the form <code>(e1 op ... op e2)</code> either <code>e1</code> shall contain
+an unexpanded parameter pack or <code>e2</code> shall contain an unexpanded parameter
+pack, but not both. If <code>e1</code> contains an unexpanded parameter pack, the
+expression is a left fold and <code>e2</code> is the rightmost operand the expansion. If
 <code>e2</code> contains an unexpanded parameter pack, the expression is a right
 fold and <code>e1</code> is the leftmost operand in the expansion. [ <i>Example</i>:</p>
 
