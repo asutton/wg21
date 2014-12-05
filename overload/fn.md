@@ -164,7 +164,7 @@ If `P` has type `T` where `T` is a type template parameter and `A` is an
 *id-expression* that names a set of overloaded functions, then a new lambda 
 expression is derived from `A` as follows.
 
-In general, for an *id-expression* `E`, a generic lambda as:
+In general, a generic lambda is formed from an *id-expression* `E` as:
 
 <pre>
     [](auto&& args) { return E(std::forward<decltype(args)>(args)...); }
