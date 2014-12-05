@@ -195,7 +195,7 @@ The resulting lambda expression is used in place of `A` for type deduction.
 
 [ <i>Example:</i>
 <pre>
-// FIXME: Write examples examples.
+// FIXME: Write examples.
 </pre>
 &mdash; <i>end example</i> ]
 
