@@ -18,10 +18,10 @@ program. These features allow for less code, more concise code, and
 <p>However, in my experiences with this feature, I often find myself writing
 lambdas that look like this:</p>
 
-<pre><code>sort(first, last, [](const T&amp; a, const T&amp; b) { return b &gt; a; }
+<pre><code>sort(first, last, [](const T&amp; a, const T&amp; b) { return b &gt; a; });
 </code></pre>
 
-<p>True, it may be easier to write this:</p>
+<p>This might be more appropriate:</p>
 
 <pre><code>sort(first, last, greater&lt;T&gt;{});
 </code></pre>
@@ -32,40 +32,87 @@ lambdas that look like this:</p>
 </code></pre>
 
 <p>But that's an extra level indirection that seems unnecessary. What I
-really want to do is write;</p>
+really want to do is write this:</p>
 
 <pre><code>sort(first, last, operator&gt;);
 </code></pre>
 
-<p>Where operator> is an <em>id-expression</em> that names an overloaded set of
-functions. This should have exactly the same behavior as the the call
-to <code>sort</code> above that includes the lambda expression.</p>
+<p>In other words, I want to pass the name of an overloaded function as an
+argument, and this should have exactly the same behavior as all of the
+functions above.</p>
 
-<p>TODO: Give better motivating examples.</p>
+<p>But what does it mean? How do you deduce the type of an overload set?
+You don't. In this context, we replace the operator name with a generic
+lambda that uses that expression, and then perform deduction against
+that. That generic lambda should look like this:</p>
 
-<p>More generally, we should be able to pass any set of overloaded functions
-as an argument to a function. For example, we could compute
-the cosine of a sequence of values as:</p>
-
-<pre><code>template&lt;typename T&gt;
-vector&lt;T&gt; fn(const vector&lt;T&gt;&amp; v) {
-  vector&lt;double&gt; r(v.size());
-  transform(v.begin(), v.end(), result, cos);
-  return result;
+<pre><code>[](auto&amp;&amp; a, auto&amp;&amp; b) { 
+  return std::forward&lt;decltype(a)&gt;(a) &lt; std::forward&lt;decltype(b)&gt;(b); 
 }
+</code></pre>
+
+<p>Note that operator names are actually a special case of normal functions.
+In general, we should be able to pass any set of overloaded functions
+as an argument. For example, we could compute the cosine of a sequence of 
+values as:</p>
+
+<pre><code>  vector&lt;double&gt; r(v.size());
+  transform(v.begin(), v.end(), result, cos);
 </code></pre>
 
 <p>In the call to <code>transform</code>, <code>cos</code> names the set of overloaded <code>cos</code> 
 functions, presumably including those in <code>&lt;cmath&gt;</code> and any others
-that happen to be in scope. Here, the call to <code>transform</code> would have the
-same behavior as calling:</p>
+that happen to be in scope. For functions like this, we can always
+replace them with the following generic lambda:</p>
 
-<pre><code>transform(v.begin(), v.end(), result, [](const auto&amp; x) { return cos(x); });
+<pre><code>[](auto&amp;&amp;... xs) { return cos(std::forward&lt;decltype(xs)&gt;(xs)...); }
 </code></pre>
 
-<p>In other words, the use of an overload set as a function argument results
-in the synthesis of a generic lambda that calls the function or operator
-with the given name.</p>
+<p>This lambda is a parameter pack, because it's not knowable which version
+of <code>cos</code> will be called until the lambda is instantiated. But, it forwards
+to the appropriate overload based on the types of its arguments.</p>
+
+<h2>More about operators</h2>
+
+<p>The generic lambdas corresponding to operators have special rules since
+a) we don't just call them as functions and b) some operator names have
+multiple forms. In particular, <code>*</code>, <code>&amp;</code>, <code>+</code>, and <code>-</code> have both unary
+and binary forms, and <code>++</code> and <code>--</code> are both unary and postfix expresssions.</p>
+
+<p>When synthesizing an argument for unary/binary operators, we actually
+need <em>polymorphic lambdas</em>. That is, if we write:</p>
+
+<pre><code>vector&lt;int&gt; v1 { ... };
+vector&lt;int&gt; v2(v1.size());
+transform(v1.begin(), v1.end(), v2.begin(), operator-);
+</code></pre>
+
+<p>The lambda for <code>operator-</code> would have a closure type like the following:</p>
+
+<pre><code>struct lambda {
+  auto operator()(auto&amp;&amp; x) const { 
+    return -std::forward&lt;decltype(x)&gt;(x);
+  }
+  auto operator()(auto&amp;&amp; x, auto&amp;&amp; y) const { 
+    return std::forward&lt;decltype(x)&gt;(x) - std::forward&lt;decltype(y)&gt;(y);
+  }
+};
+</code></pre>
+
+<p>The other unary/binary operators have similar syntheses.</p>
+
+<p>For the unary/postfix operators, I propose that the operator name select
+only the prefix form. It seems to be the most common. That is:</p>
+
+<pre><code>for_each(v1.begin(), v1.end(), operator++);
+</code></pre>
+
+<p>would have this lambda:</p>
+
+<pre><code>[](auto&amp;&amp; x) { return ++(std::forward&lt;decltype(x)&gt;(x); }
+</code></pre>
+
+<h2>Function objects revisited</h2>
 
 <p>Note that this proposal also allows the declaration of variables
 that refer to overload sets. Here is an alternative formulation of
@@ -81,11 +128,34 @@ that refer to overload sets. Here is an alternative formulation of
 };
 </code></pre>
 
+<h2>Qualified ids</h2>
+
+<p>If the <em>id-expression</em> naming the overloaded function is a <em>qualified-id</em>,
+then the function called in the lambda expression should also be fully
+qualified. So if you write this:</p>
+
+<pre><code>template&lt;typename T&gt;
+  void f(T) { }
+
+f(std::swap);
+</code></pre>
+
+<p>The corresponding lambda for the overload argument would be:</p>
+
+<pre><code>[](auto&amp;&amp;... xs) { return std::swap(std::forward&lt;decltype(xs)&gt;(xs)...); }
+</code></pre>
+
+<h2>When not to use this feature</h2>
+
+<p>If you need to call an operator as a function.</p>
+
+<p>If you need to use a postfix increment or decrement operator.</p>
+
 <h2>Related work</h2>
 
 <p><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3617.htm">N3617</a>
-describes "lifting expressions", which satisfy many of the same aims of
-this proposal. However, it requires the <em>lambda-introducer</em> before the
+describes "lifting expressions", which have the same aims of this 
+proposal. However, it requires the <em>lambda-introducer</em> before the
 <em>id-expression</em>. This extra annotation seems unnecessary to me.</p>
 
 <p>N3617 goes further and suggests that we allow projection functions like
@@ -113,7 +183,7 @@ it's not clear what <code>ordered_by</code> should actually do.</p>
 <p><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3701.htm">N3701</a>
 made brief mention of this feature, more or less in the form that it is
 presented here. However, the rules from N3617 for forming lambda expressions
-from operators have been adopted here.</p>
+from operators have been adopted here and expanded to handle unary operators.</p>
 
 <h2>Errata</h2>
 
@@ -124,34 +194,6 @@ using boost::math::cos;
 
 transform(v.begin(), v.end(), result, cos);
 </code></pre>
-
-<p>TODO: The transformation described below doesn't work for unary operators.
-We need a mechanism to select between a unary and binary operator when
-the lambda is instantiated. Effectively, we want something that does
-this.</p>
-
-<pre><code>template&lt;typename T&gt;
-  auto do_op(T&amp;&amp; x) { return op std::forward&lt;T&gt;(x); }
-
-template&lt;typename T, typename U&gt;
-  auto do_op(T&amp;&amp; a, U&amp;&amp; b) { return std::forward&lt;T&gt;(a) op std:forward&lt;T&gt;(b); }
-
-[](auto&amp;&amp;... args) { return do_op(std::forward&lt;Args&gt;(args)...); }
-</code></pre>
-
-<p>This could be compiler magic: an internal "forwarding operator" that
-selects its appropriate arity when instantiated and not otherwise.</p>
-
-<p>Note that we could also expand this discussion to include fold expressions.
-That is, if a binary operator lambda is called with more than 2 arguments,
-we could generate this;</p>
-
-<pre><code>(arg1 op ... op args)
-</code></pre>
-
-<p>where arg1 is the first in the sequence and args are the rest. Again, this
-requires some compiler magic where the actual formation of the operator
-is delayed until instantiation.</p>
 
 <h2>Wording</h2>
 
@@ -168,7 +210,7 @@ function type).</p>
 <em>id-expression</em> that names a set of overloaded functions, then a new lambda 
 expression is derived from <code>A</code> as follows.</p>
 
-<p>In general, if the  <em>id-expression</em> <code>E</code>, form a generic lambda as:</p>
+<p>In general, a generic lambda is formed from an <em>id-expression</em> <code>E</code> as:</p>
 
 <pre>
     [](auto&& args) { return E(std::forward<decltype(args)>(args)...); }
@@ -206,7 +248,7 @@ expression depends on the operator:</p>
 <p>[ <i>Example:</i></p>
 
 <pre>
-// FIXME: Write examples examples.
+// FIXME: Write examples.
 </pre>
 
 <p>&mdash; <i>end example</i> ]</p>

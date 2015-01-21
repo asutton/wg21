@@ -20,9 +20,9 @@ However, in my experiences with this feature, I often find myself writing
 lambdas that look like this:
 
 
-    sort(first, last, [](const T& a, const T& b) { return b > a; }
+    sort(first, last, [](const T& a, const T& b) { return b > a; });
 
-True, it may be easier to write this:
+This might be more appropriate:
 
     sort(first, last, greater<T>{});
 
@@ -31,38 +31,80 @@ Or even this:
     sort(first, last, greater<>{});
 
 But that's an extra level indirection that seems unnecessary. What I
-really want to do is write;
+really want to do is write this:
 
 
     sort(first, last, operator>);
 
-Where operator> is an *id-expression* that names an overloaded set of
-functions. This should have exactly the same behavior as the the call
-to `sort` above that includes the lambda expression.
+In other words, I want to pass the name of an overloaded function as an
+argument, and this should have exactly the same behavior as all of the
+functions above.
 
-TODO: Give better motivating examples.
+But what does it mean? How do you deduce the type of an overload set?
+You don't. In this context, we replace the operator name with a generic
+lambda that uses that expression, and then perform deduction against
+that. That generic lambda should look like this:
 
-More generally, we should be able to pass any set of overloaded functions
-as an argument to a function. For example, we could compute
-the cosine of a sequence of values as:
+    [](auto&& a, auto&& b) { 
+      return std::forward<decltype(a)>(a) < std::forward<decltype(b)>(b); 
+    }
 
-    template<typename T>
-    vector<T> fn(const vector<T>& v) {
+Note that operator names are actually a special case of normal functions.
+In general, we should be able to pass any set of overloaded functions
+as an argument. For example, we could compute the cosine of a sequence of 
+values as:
+
       vector<double> r(v.size());
       transform(v.begin(), v.end(), result, cos);
-      return result;
-    }
 
 In the call to `transform`, `cos` names the set of overloaded `cos` 
 functions, presumably including those in `<cmath>` and any others
-that happen to be in scope. Here, the call to `transform` would have the
-same behavior as calling:
+that happen to be in scope. For functions like this, we can always
+replace them with the following generic lambda:
 
-    transform(v.begin(), v.end(), result, [](const auto& x) { return cos(x); });
+    [](auto&&... xs) { return cos(std::forward<decltype(xs)>(xs)...); }
 
-In other words, the use of an overload set as a function argument results
-in the synthesis of a generic lambda that calls the function or operator
-with the given name.
+This lambda is a parameter pack, because it's not knowable which version
+of `cos` will be called until the lambda is instantiated. But, it forwards
+to the appropriate overload based on the types of its arguments.
+
+## More about operators
+
+The generic lambdas corresponding to operators have special rules since
+a) we don't just call them as functions and b) some operator names have
+multiple forms. In particular, `*`, `&`, `+`, and `-` have both unary
+and binary forms, and `++` and `--` are both unary and postfix expresssions.
+
+When synthesizing an argument for unary/binary operators, we actually
+need *polymorphic lambdas*. That is, if we write:
+
+    vector<int> v1 { ... };
+    vector<int> v2(v1.size());
+    transform(v1.begin(), v1.end(), v2.begin(), operator-);
+
+The lambda for `operator-` would have a closure type like the following:
+
+    struct lambda {
+      auto operator()(auto&& x) const { 
+        return -std::forward<decltype(x)>(x);
+      }
+      auto operator()(auto&& x, auto&& y) const { 
+        return std::forward<decltype(x)>(x) - std::forward<decltype(y)>(y);
+      }
+    };
+
+The other unary/binary operators have similar syntheses.
+
+For the unary/postfix operators, I propose that the operator name select
+only the prefix form. It seems to be the most common. That is:
+
+    for_each(v1.begin(), v1.end(), operator++);
+
+would have this lambda:
+
+    [](auto&& x) { return ++(std::forward<decltype(x)>(x); }
+
+## Function objects revisited
 
 Note that this proposal also allows the declaration of variables
 that refer to overload sets. Here is an alternative formulation of
@@ -77,11 +119,33 @@ This would be equivalent to writing:
     };
 
 
+## Qualified ids
+
+If the *id-expression* naming the overloaded function is a *qualified-id*,
+then the function called in the lambda expression should also be fully
+qualified. So if you write this:
+
+    template<typename T>
+      void f(T) { }
+
+    f(std::swap);
+
+The corresponding lambda for the overload argument would be:
+
+    [](auto&&... xs) { return std::swap(std::forward<decltype(xs)>(xs)...); }
+
+
+## When not to use this feature
+
+If you need to call an operator as a function.
+
+If you need to use a postfix increment or decrement operator.
+
 ## Related work
 
 [N3617](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3617.htm)
-describes "lifting expressions", which satisfy many of the same aims of
-this proposal. However, it requires the *lambda-introducer* before the
+describes "lifting expressions", which have the same aims of this 
+proposal. However, it requires the *lambda-introducer* before the
 *id-expression*. This extra annotation seems unnecessary to me.
 
 N3617 goes further and suggests that we allow projection functions like
@@ -107,7 +171,7 @@ it's not clear what `ordered_by` should actually do.
 [N3701](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3701.htm)
 made brief mention of this feature, more or less in the form that it is
 presented here. However, the rules from N3617 for forming lambda expressions
-from operators have been adopted here.
+from operators have been adopted here and expanded to handle unary operators.
 
 ## Errata 
 TODO: What about overload sets based on things like this:
@@ -116,36 +180,6 @@ TODO: What about overload sets based on things like this:
     using boost::math::cos;
 
     transform(v.begin(), v.end(), result, cos);
-
-
-TODO: The transformation described below doesn't work for unary operators.
-We need a mechanism to select between a unary and binary operator when
-the lambda is instantiated. Effectively, we want something that does
-this.
-
-    template<typename T>
-      auto do_op(T&& x) { return op std::forward<T>(x); }
-    
-    template<typename T, typename U>
-      auto do_op(T&& a, U&& b) { return std::forward<T>(a) op std:forward<T>(b); }
-
-    [](auto&&... args) { return do_op(std::forward<Args>(args)...); }
-
-This could be compiler magic: an internal "forwarding operator" that
-selects its appropriate arity when instantiated and not otherwise.
-
-Note that we could also expand this discussion to include fold expressions.
-That is, if a binary operator lambda is called with more than 2 arguments,
-we could generate this;
-
-
-    (arg1 op ... op args)
-
-
-where arg1 is the first in the sequence and args are the rest. Again, this
-requires some compiler magic where the actual formation of the operator
-is delayed until instantiation.
-
 
 ## Wording
 
