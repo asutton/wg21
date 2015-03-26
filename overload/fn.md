@@ -20,7 +20,7 @@ However, in my experiences with this feature, I often find myself writing
 lambdas that look like this:
 
 
-    sort(first, last, [](const T& a, const T& b) { return b > a; });
+    sort(first, last, [](const T& a, const T& b) -> decltype(auto) { return b > a; });
 
 This might be more appropriate:
 
@@ -45,7 +45,7 @@ You don't. In this context, we replace the operator name with a generic
 lambda that uses that expression, and then perform deduction against
 that. That generic lambda should look like this:
 
-    [](auto&& a, auto&& b) { 
+    [](auto&& a, auto&& b) -> decltype(auto) { 
       return std::forward<decltype(a)>(a) < std::forward<decltype(b)>(b); 
     }
 
@@ -62,7 +62,7 @@ functions, presumably including those in `<cmath>` and any others
 that happen to be in scope. For functions like this, we can always
 replace them with the following generic lambda:
 
-    [](auto&&... xs) { return cos(std::forward<decltype(xs)>(xs)...); }
+    [](auto&&... xs) -> decltype(auto) { return cos(std::forward<decltype(xs)>(xs)...); }
 
 This lambda is a parameter pack, because it's not knowable which version
 of `cos` will be called until the lambda is instantiated. But, it forwards
@@ -85,10 +85,10 @@ need *polymorphic lambdas*. That is, if we write:
 The lambda for `operator-` would have a closure type like the following:
 
     struct lambda {
-      auto operator()(auto&& x) const { 
+      decltype(auto) operator()(auto&& x) const { 
         return -std::forward<decltype(x)>(x);
       }
-      auto operator()(auto&& x, auto&& y) const { 
+      decltype(auto) operator()(auto&& x, auto&& y) const { 
         return std::forward<decltype(x)>(x) - std::forward<decltype(y)>(y);
       }
     };
@@ -102,7 +102,7 @@ only the prefix form. It seems to be the most common. That is:
 
 would have this lambda:
 
-    [](auto&& x) { return ++(std::forward<decltype(x)>(x); }
+    [](auto&& x) -> decltype(auto) { return ++(std::forward<decltype(x)>(x); }
 
 ## Function objects revisited
 
@@ -114,7 +114,7 @@ that refer to overload sets. Here is an alternative formulation of
 
 This would be equivalent to writing:
 
-    auto plus = [](auto&& a, auto&& b) { 
+    auto plus = [](auto&& a, auto&& b) -> decltype(auto) { 
       return std::forward<decltype(a)>(b) + std::forward<decltype(b)>(b); 
     };
 
@@ -132,7 +132,7 @@ qualified. So if you write this:
 
 The corresponding lambda for the overload argument would be:
 
-    [](auto&&... xs) { return std::swap(std::forward<decltype(xs)>(xs)...); }
+    [](auto&&... xs) -> decltype(auto) { return std::swap(std::forward<decltype(xs)>(xs)...); }
 
 
 ## When not to use this feature
@@ -201,7 +201,7 @@ expression is derived from `A` as follows.
 In general, a generic lambda is formed from an *id-expression* `E` as:
 
 <pre>
-    [](auto&& args) { return E(std::forward<decltype(args)>(args)...); }
+    [](auto&& args) -> decltype(auto) { return E(std::forward<decltype(args)>(args)...); }
 </pre>
 
 However, if `E` is an *operator-id*, of the form `operator @`, the lambda 
@@ -210,19 +210,19 @@ expression depends on the operator:
 - If the *operator-id* is `()`, the lambda is formed as:
 
 <pre>
-    [](auto&& a, auto...&& args) { return std::forward<decltype(a)>(a)(std::forward<decltype(args)>(args)...); }
+    [](auto&& a, auto...&& args) -> decltype(auto) { return std::forward<decltype(a)>(a)(std::forward<decltype(args)>(args)...); }
 </pre>
 
 - Otherwise, if the operator is one of `[]`, the lambda is formed as:
 
 <pre>
-    [](auto&& a, auto&& b) { return std::forward<decltype(a)>(a)[std::forward<decltype(b)>(b)]; }
+    [](auto&& a, auto&& b) -> decltype(auto) { return std::forward<decltype(a)>(a)[std::forward<decltype(b)>(b)]; }
 </pre>
 
 - Otherwise, the lambda is formed as:
 
 <pre>
-    [](auto&& a, auto&& b) { return std::forward<decltype(a)>(a) @ std::forward<decltype(b)>(b); }
+    [](auto&& a, auto&& b) -> decltype(auto) { return std::forward<decltype(a)>(a) @ std::forward<decltype(b)>(b); }
 </pre>
 
 The resulting lambda expression is used in place of `A` for type deduction.
