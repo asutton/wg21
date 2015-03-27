@@ -20,7 +20,7 @@ However, in my experiences with this feature, I often find myself writing
 lambdas that look like this:
 
 
-    sort(first, last, [](const T& a, const T& b) { return b > a; });
+    sort(first, last, [](const T& a, const T& b) -> decltype(auto) { return b > a; });
 
 This might be more appropriate:
 
@@ -45,24 +45,24 @@ You don't. In this context, we replace the operator name with a generic
 lambda that uses that expression, and then perform deduction against
 that. That generic lambda should look like this:
 
-    [](auto&& a, auto&& b) { 
-      return std::forward<decltype(a)>(a) < std::forward<decltype(b)>(b); 
+    [](auto&& a, auto&& b) -> decltype(auto) {
+      return std::forward<decltype(a)>(a) < std::forward<decltype(b)>(b);
     }
 
 Note that operator names are actually a special case of normal functions.
 In general, we should be able to pass any set of overloaded functions
-as an argument. For example, we could compute the cosine of a sequence of 
+as an argument. For example, we could compute the cosine of a sequence of
 values as:
 
       vector<double> r(v.size());
       transform(v.begin(), v.end(), result, cos);
 
-In the call to `transform`, `cos` names the set of overloaded `cos` 
+In the call to `transform`, `cos` names the set of overloaded `cos`
 functions, presumably including those in `<cmath>` and any others
 that happen to be in scope. For functions like this, we can always
 replace them with the following generic lambda:
 
-    [](auto&&... xs) { return cos(std::forward<decltype(xs)>(xs)...); }
+    [](auto&&... xs) -> decltype(auto) { return cos(std::forward<decltype(xs)>(xs)...); }
 
 This lambda is a parameter pack, because it's not knowable which version
 of `cos` will be called until the lambda is instantiated. But, it forwards
@@ -85,10 +85,10 @@ need *polymorphic lambdas*. That is, if we write:
 The lambda for `operator-` would have a closure type like the following:
 
     struct lambda {
-      auto operator()(auto&& x) const { 
+      decltype(auto) operator()(auto&& x) const {
         return -std::forward<decltype(x)>(x);
       }
-      auto operator()(auto&& x, auto&& y) const { 
+      decltype(auto) operator()(auto&& x, auto&& y) const {
         return std::forward<decltype(x)>(x) - std::forward<decltype(y)>(y);
       }
     };
@@ -102,7 +102,7 @@ only the prefix form. It seems to be the most common. That is:
 
 would have this lambda:
 
-    [](auto&& x) { return ++(std::forward<decltype(x)>(x); }
+    [](auto&& x) -> decltype(auto) { return ++(std::forward<decltype(x)>(x); }
 
 ## Function objects revisited
 
@@ -114,8 +114,8 @@ that refer to overload sets. Here is an alternative formulation of
 
 This would be equivalent to writing:
 
-    auto plus = [](auto&& a, auto&& b) { 
-      return std::forward<decltype(a)>(b) + std::forward<decltype(b)>(b); 
+    auto plus = [](auto&& a, auto&& b) -> decltype(auto) {
+      return std::forward<decltype(a)>(b) + std::forward<decltype(b)>(b);
     };
 
 
@@ -132,7 +132,7 @@ qualified. So if you write this:
 
 The corresponding lambda for the overload argument would be:
 
-    [](auto&&... xs) { return std::swap(std::forward<decltype(xs)>(xs)...); }
+    [](auto&&... xs) -> decltype(auto) { return std::swap(std::forward<decltype(xs)>(xs)...); }
 
 
 ## When not to use this feature
@@ -144,7 +144,7 @@ If you need to use a postfix increment or decrement operator.
 ## Related work
 
 [N3617](http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3617.htm)
-describes "lifting expressions", which have the same aims of this 
+describes "lifting expressions", which have the same aims of this
 proposal. However, it requires the *lambda-introducer* before the
 *id-expression*. This extra annotation seems unnecessary to me.
 
@@ -173,7 +173,7 @@ made brief mention of this feature, more or less in the form that it is
 presented here. However, the rules from N3617 for forming lambda expressions
 from operators have been adopted here and expanded to handle unary operators.
 
-## Errata 
+## Errata
 TODO: What about overload sets based on things like this:
 
     using std::cos;
@@ -187,42 +187,42 @@ TODO: What about overload sets based on things like this:
 ### 14.8.2.1 Deducing template arguments from a function call  [temp.deduct.call]
 
 
-Add the following paragraphs. The only context where the synthesis of generic 
+Add the following paragraphs. The only context where the synthesis of generic
 lambdas from an *id-expression* should be allowed is when the type of the
 corresponding parameter is a type template parameter. Note that this context
 should be separate from contexts where overload resolution is performed
 to take the address of an overloaded function (as those require a target
 function type).
 
-If `P` has type `T` where `T` is a type template parameter and `A` is an 
-*id-expression* that names a set of overloaded functions, then a new lambda 
+If `P` has type `T` where `T` is a type template parameter and `A` is an
+*id-expression* that names a set of overloaded functions, then a new lambda
 expression is derived from `A` as follows.
 
 In general, a generic lambda is formed from an *id-expression* `E` as:
 
 <pre>
-    [](auto&& args) { return E(std::forward<decltype(args)>(args)...); }
+    [](auto&& args) -> decltype(auto) { return E(std::forward<decltype(args)>(args)...); }
 </pre>
 
-However, if `E` is an *operator-id*, of the form `operator @`, the lambda 
+However, if `E` is an *operator-id*, of the form `operator @`, the lambda
 expression depends on the operator:
 
 - If the *operator-id* is `()`, the lambda is formed as:
 
 <pre>
-    [](auto&& a, auto...&& args) { return std::forward<decltype(a)>(a)(std::forward<decltype(args)>(args)...); }
+    [](auto&& a, auto...&& args) -> decltype(auto) { return std::forward<decltype(a)>(a)(std::forward<decltype(args)>(args)...); }
 </pre>
 
 - Otherwise, if the operator is one of `[]`, the lambda is formed as:
 
 <pre>
-    [](auto&& a, auto&& b) { return std::forward<decltype(a)>(a)[std::forward<decltype(b)>(b)]; }
+    [](auto&& a, auto&& b) -> decltype(auto) { return std::forward<decltype(a)>(a)[std::forward<decltype(b)>(b)]; }
 </pre>
 
 - Otherwise, the lambda is formed as:
 
 <pre>
-    [](auto&& a, auto&& b) { return std::forward<decltype(a)>(a) @ std::forward<decltype(b)>(b); }
+    [](auto&& a, auto&& b) -> decltype(auto) { return std::forward<decltype(a)>(a) @ std::forward<decltype(b)>(b); }
 </pre>
 
 The resulting lambda expression is used in place of `A` for type deduction.
