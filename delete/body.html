@@ -1,0 +1,89 @@
+<h1>Deleted declarations</h1>
+
+<div style="text-align:center">
+Andrew Sutton<br/>
+Date: 2014-12-12<br/>
+Document number: DXXX
+</div>
+
+<h2>Overview</h2>
+
+<p>I often find myself declaring unconstrained generic functions or 
+class templates that I plan to overload or specialize later.
+The purpose is to simply introduce a name for use in a generic 
+algorithm without defining any specific models for which the
+algorithm should work. For example:</p>
+
+<pre><code>template&lt;typename T&gt;
+  T f(T) = delete;
+
+template&lt;typename T&gt;
+  auto g(T a) { return f(a); }
+</code></pre>
+
+<p>Or, for classes:</p>
+
+<pre><code>template&lt;typename T&gt;
+  struct Foo;
+
+template&lt;typename T&gt;
+  struct Bar {
+    Foo&lt;T&gt; foo;
+  };
+</code></pre>
+
+<p>Whenever an overload or specialization is not provided, the program
+becomes ill-formed either because overload resolution finds a deleted
+function or because a class template specialization is incomplete.</p>
+
+<p>However, I can't do this for variable templates:</p>
+
+<pre><code>template&lt;typename T&gt;
+  T data; // Will always declare a variable
+</code></pre>
+
+<p>Instantiation will always succeed; this is not what I want. What
+I really want to write is this:</p>
+
+<pre><code>template&lt;typename T&gt;
+  T data = delete;
+</code></pre>
+
+<p>So that, when this variable instantiated, the program becomes ill-formed.</p>
+
+<p>For symmetry, we should also allow the ability to delete a class or
+union definition.</p>
+
+<pre><code>template&lt;typename T&gt;
+  class S = delete;
+</code></pre>
+
+<p>Instantiating this class template results in an ill-formed program. This
+allows programmers to clearly express the intent that a class does not
+have a valid definition (as opposed to simply leaving it undefined).</p>
+
+<p>This proposal does not include alias templates since they cannot be
+specialized.</p>
+
+<h2>Wording</h2>
+
+<h3>8.5 Initializers [dcl.init]</h3>
+
+<p>Add <code>= delete</code> to the <em>brace-or-equal-initializer</em> grammar.</p>
+
+<pre><i>brace-or-equal-initializer</i>:
+    = delete
+</pre>
+
+<h3>9 Classes [class]</h3>
+
+<p>Modify the <em>class-specifier</em> grammar.</p>
+
+<pre><i>class-specifier</i>:
+    <i>class-head</i> <del>{ <i>member-specification<sub>opt</sub></i> }</del>
+    <i>class-head</i> <i>class-definition</i>
+
+<i>class-definition</i>
+    { <i>member-specification<sub>opt</sub></i> }
+    = delete
+</pre>
