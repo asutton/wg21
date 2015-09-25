@@ -1,11 +1,9 @@
 
-file = fn
 
-fn.html: ${file}.md head.html tail.html
-	markdown ${file}.md > body.html
-	cat head.html body.html tail.html > ${file}.html
+fn.pdf: fn.md
+	pandoc fn.md -o fn.pdf
 
 all: ${file}.html
 
 clean:
-	rm -f ${file}.html
+	rm -f fn.pdf

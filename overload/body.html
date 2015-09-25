@@ -1,85 +1,190 @@
 <h1>Overload sets as function arguments</h1>
 
-<div style="text-align:center">
-Andrew Sutton<br/>
-Date: 2014-12-05<br/>
-Document number: DXXX
-</div>
+<p>Andrew Sutton \<asutton@uakron.edu\></p>
+
+<p>Date: 2015-09-25</p>
+
+<p>Document number: P0019R0</p>
 
 <h2>Introduction</h2>
 
-<p>Lambdas (and generic lambdas) make it easier to program with generic
-libraries. Passing a comparator as an argument to e.g., sort no longer
-requires the program to step outside of their current scope to define
-a function or function or object that they use exactly once in their
-program. These features allow for less code, more concise code, and
-(arguably) fewer programming errors.</p>
+<p>Suppose I have a generic algorithm that <code>transform</code>s a sequence of values 
+by an overloaded function <code>f</code>. I want to write it like this:</p>
 
-<p>However, in my experiences with this feature, I often find myself writing
-lambdas that look like this:</p>
-
-<pre><code>sort(first, last, [](const T&amp; a, const T&amp; b) { return b &gt; a; }
-</code></pre>
-
-<p>True, it may be easier to write this:</p>
-
-<pre><code>sort(first, last, greater&lt;T&gt;{});
-</code></pre>
-
-<p>Or even this:</p>
-
-<pre><code>sort(first, last, greater&lt;&gt;{});
-</code></pre>
-
-<p>But that's an extra level indirection that seems unnecessary. What I
-really want to do is write;</p>
-
-<pre><code>sort(first, last, operator&gt;);
-</code></pre>
-
-<p>Where operator> is an <em>id-expression</em> that names an overloaded set of
-functions. This should have exactly the same behavior as the the call
-to <code>sort</code> above that includes the lambda expression.</p>
-
-<p>TODO: Give better motivating examples.</p>
-
-<p>More generally, we should be able to pass any set of overloaded functions
-as an argument to a function. For example, we could compute
-the cosine of a sequence of values as:</p>
-
-<pre><code>template&lt;typename T&gt;
-vector&lt;T&gt; fn(const vector&lt;T&gt;&amp; v) {
-  vector&lt;double&gt; r(v.size());
-  transform(v.begin(), v.end(), result, cos);
-  return result;
+<p><code>{.cpp}
+template&lt;typename I&gt;
+void apply_f(I first, I last)
+{
+  transform(first, last, f);
 }
-</code></pre>
+</code></p>
 
-<p>In the call to <code>transform</code>, <code>cos</code> names the set of overloaded <code>cos</code> 
-functions, presumably including those in <code>&lt;cmath&gt;</code> and any others
-that happen to be in scope. Here, the call to <code>transform</code> would have the
-same behavior as calling:</p>
+<p>Unfortunately, this doesn't work if <code>f</code> is overloaded or a template.
+That's too bad because is the clearest possible expression of my
+intent.</p>
 
-<pre><code>transform(v.begin(), v.end(), result, [](const auto&amp; x) { return cos(x); });
-</code></pre>
+<p>Instead, I need to use a lambda algorithm with a concrete argument in 
+order to get the compiler to select an appropriate overload of <code>f</code>.</p>
 
-<p>In other words, the use of an overload set as a function argument results
-in the synthesis of a generic lambda that calls the function or operator
-with the given name.</p>
+<p><code>{.cpp}
+template&lt;typename I&gt;
+void apply_f(I first, I last)
+{
+  transform(first, last, [](auto const&amp; x) { return f(x); }
+}
+</code></p>
 
-<p>Note that this proposal also allows the declaration of variables
-that refer to overload sets. Here is an alternative formulation of
-<code>std::plus</code>.</p>
+<p>This works, but it's not as clear and concise as it could be.
+I would much prefer to write the former.</p>
 
-<pre><code>auto plus = operator+;
-</code></pre>
+<p>This paper proposes the use of overload sets as function arguments
+and variable initializers. In addition to the use of functions above,
+we would also like to use <em>operator-id</em>s as well. For example, I want
+to call <code>sort</code> like this:</p>
 
-<p>This would be equivalent to writing:</p>
+<p><code>{.cpp}
+sort(first, last, operator&gt;);
+</code></p>
 
-<pre><code>auto plus = [](auto&amp;&amp; a, auto&amp;&amp; b) { 
-  return std::forward&lt;decltype(a)&gt;(b) + std::forward&lt;decltype(b)&gt;(b); 
+<p>And I should be able to define function objects using the same
+technique:</p>
+
+<p><code>{.cpp}
+auto gt = operator&gt;;
+</code></p>
+
+<p>This feature can be provided without introducing any runtime overhead.</p>
+
+<h2>How it works</h2>
+
+<p>The mechanism that makes this language feature work is to synthesize
+a lambda expression whenever an overload set is named. In this example:</p>
+
+<p><code>{.cpp}
+template&lt;typename I&gt;
+void apply_f(I first, I last)
+{
+  transform(first, last, f);
+}
+</code></p>
+
+<p>The <em>id-expression</em> <code>f</code> (which I assume names an overload set) would 
+correspond to the following lambda expression:</p>
+
+<p><code>{.cpp}
+[](auto&amp;&amp; x) -&gt; auto&amp;&amp; { return f(std::forward&lt;decltype(x)&gt;(x)); };
+</code></p>
+
+<p>Similarly, the use of <code>operator&gt;</code>, either as an argument or as the
+initializer of a variable would correspond to this lambda expression:</p>
+
+<p><code>{.cpp}
+[](auto&amp;&amp; a, auto&amp;&amp; b) -&gt;auto&amp;&amp; {
+  return std::forward&lt;decltype(a)&gt;(b) &gt; std::forward&lt;decltype(b)&gt;(b);
 };
+</code></p>
+
+<p>Note that this transformation described below doesn't work for unary 
+operators. We would need a mechanism to select between a unary and binary 
+operator when the lambda is instantiated. For such operators, we could 
+synthesize a polymorphic lambda closure:</p>
+
+<p>``` {.cpp}
+struct polymprhic_lambda
+{
+  template<typename T>
+  T&amp;&amp; operator()(T&amp;&amp; x) { return op std::forward<T>(x); }</p>
+
+<p>template<typename T, typename U>
+  T&amp;&amp; operator()(T&amp;&amp; a, U&amp;&amp; b) { 
+    return std::forward<T>(a) op std:forward<T>(b); 
+  }
+}
+```</p>
+
+<p>This could be compiler magic: an internal "forwarding operator" that
+selects its appropriate arity when instantiated and not otherwise.</p>
+
+<p>Note that we could also expand this discussion to include fold expressions.
+That is, if a binary operator lambda is called with more than 2 arguments,
+we could generate this;</p>
+
+<pre><code>(arg1 op ... op args)
 </code></pre>
+
+<p>where arg1 is the first in the sequence and args are the rest. Again, this
+requires some compiler magic where the actual formation of the operator
+is delayed until instantiation.</p>
+
+<h2>Proposed wording</h2>
+
+<h3>14.8.2.1 Deducing template arguments from a function call  [temp.deduct.call]</h3>
+
+<p>Add the following paragraphs. The only context where the synthesis of generic 
+lambdas from an <em>id-expression</em> should be allowed is when the type of the
+corresponding parameter is a type template parameter. Note that this context
+should be separate from contexts where overload resolution is performed
+to take the address of an overloaded function (as those require a target
+function type).</p>
+
+<p>If <code>P</code> has type <code>T</code> where <code>T</code> is a type template parameter and <code>A</code> is an 
+<em>id-expression</em> that names a set of overloaded functions, then a new lambda 
+expression is derived from <code>A</code> as follows.</p>
+
+<p>In general, a generic lambda is formed from an <em>id-expression</em> <code>E</code> as:</p>
+
+<p><code>{.cpp}
+[](auto&amp;&amp; args) { return E(std::forward&lt;decltype(args)&gt;(args)...); }
+</code></p>
+
+<p>However, if <code>E</code> is an <em>operator-id</em>, of the form <code>operator @</code>, the lambda 
+expression depends on the operator:</p>
+
+<ul>
+<li>If the <em>operator-id</em> is <code>()</code>, the lambda is formed as:</li>
+</ul>
+
+<pre>
+    [](auto&& a, auto...&& args) { return std::forward<decltype(a)>(a)(std::forward<decltype(args)>(args)...); }
+</pre>
+
+<ul>
+<li>Otherwise, if the operator is one of <code>[]</code>, the lambda is formed as:</li>
+</ul>
+
+<pre>
+    [](auto&& a, auto&& b) { return std::forward<decltype(a)>(a)[std::forward<decltype(b)>(b)]; }
+</pre>
+
+<ul>
+<li>Otherwise, the lambda is formed as:</li>
+</ul>
+
+<pre>
+    [](auto&& a, auto&& b) { return std::forward<decltype(a)>(a) @ std::forward<decltype(b)>(b); }
+</pre>
+
+<p>The resulting lambda expression is used in place of <code>A</code> for type deduction.</p>
+
+<p>[ <i>Example:</i></p>
+
+<pre>
+// FIXME: Write examples.
+</pre>
+
+<p>&mdash; <i>end example</i> ]</p>
+
+<p></body></p>
+
+<h2>Implementation experience</h2>
+
+<p>I started an implementation of this feature in GCC last year, but didn't
+finish it --- not even close. Effectively, the implementation is capable
+of recognizing when to synthesize the lambda expression from an
+<em>id-expression</em>, but not actually doing it.</p>
+
+<p>One of the reasons the implementation stalled was the reliance on a library
+function in the definition of the lambda expression.</p>
 
 <h2>Related work</h2>
 
@@ -114,101 +219,3 @@ it's not clear what <code>ordered_by</code> should actually do.</p>
 made brief mention of this feature, more or less in the form that it is
 presented here. However, the rules from N3617 for forming lambda expressions
 from operators have been adopted here.</p>
-
-<h2>Errata</h2>
-
-<p>TODO: What about overload sets based on things like this:</p>
-
-<pre><code>using std::cos;
-using boost::math::cos;
-
-transform(v.begin(), v.end(), result, cos);
-</code></pre>
-
-<p>TODO: The transformation described below doesn't work for unary operators.
-We need a mechanism to select between a unary and binary operator when
-the lambda is instantiated. Effectively, we want something that does
-this.</p>
-
-<pre><code>template&lt;typename T&gt;
-  auto do_op(T&amp;&amp; x) { return op std::forward&lt;T&gt;(x); }
-
-template&lt;typename T, typename U&gt;
-  auto do_op(T&amp;&amp; a, U&amp;&amp; b) { return std::forward&lt;T&gt;(a) op std:forward&lt;T&gt;(b); }
-
-[](auto&amp;&amp;... args) { return do_op(std::forward&lt;Args&gt;(args)...); }
-</code></pre>
-
-<p>This could be compiler magic: an internal "forwarding operator" that
-selects its appropriate arity when instantiated and not otherwise.</p>
-
-<p>Note that we could also expand this discussion to include fold expressions.
-That is, if a binary operator lambda is called with more than 2 arguments,
-we could generate this;</p>
-
-<pre><code>(arg1 op ... op args)
-</code></pre>
-
-<p>where arg1 is the first in the sequence and args are the rest. Again, this
-requires some compiler magic where the actual formation of the operator
-is delayed until instantiation.</p>
-
-<h2>Wording</h2>
-
-<h3>14.8.2.1 Deducing template arguments from a function call  [temp.deduct.call]</h3>
-
-<p>Add the following paragraphs. The only context where the synthesis of generic 
-lambdas from an <em>id-expression</em> should be allowed is when the type of the
-corresponding parameter is a type template parameter. Note that this context
-should be separate from contexts where overload resolution is performed
-to take the address of an overloaded function (as those require a target
-function type).</p>
-
-<p>If <code>P</code> has type <code>T</code> where <code>T</code> is a type template parameter and <code>A</code> is an 
-<em>id-expression</em> that names a set of overloaded functions, then a new lambda 
-expression is derived from <code>A</code> as follows.</p>
-
-<p>In general, if the  <em>id-expression</em> <code>E</code>, form a generic lambda as:</p>
-
-<pre>
-    [](auto&& args) { return E(std::forward<decltype(args)>(args)...); }
-</pre>
-
-<p>However, if <code>E</code> is an <em>operator-id</em>, of the form <code>operator @</code>, the lambda 
-expression depends on the operator:</p>
-
-<ul>
-<li>If the <em>operator-id</em> is <code>()</code>, the lambda is formed as:</li>
-</ul>
-
-<pre>
-    [](auto&& a, auto...&& args) { return std::forward<decltype(a)>(a)(std::forward<decltype(args)>(args)...); }
-</pre>
-
-<ul>
-<li>Otherwise, if the operator is one of <code>[]</code>, the lambda is formed as:</li>
-</ul>
-
-<pre>
-    [](auto&& a, auto&& b) { return std::forward<decltype(a)>(a)[std::forward<decltype(b)>(b)]; }
-</pre>
-
-<ul>
-<li>Otherwise, the lambda is formed as:</li>
-</ul>
-
-<pre>
-    [](auto&& a, auto&& b) { return std::forward<decltype(a)>(a) @ std::forward<decltype(b)>(b); }
-</pre>
-
-<p>The resulting lambda expression is used in place of <code>A</code> for type deduction.</p>
-
-<p>[ <i>Example:</i></p>
-
-<pre>
-// FIXME: Write examples examples.
-</pre>
-
-<p>&mdash; <i>end example</i> ]</p>
-
-<p></body></p>
