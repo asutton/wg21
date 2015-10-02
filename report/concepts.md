@@ -1,13 +1,12 @@
 
------------------------------------
 Editor's report for the Concepts TS
------------------------------------
+===================================
 
 Andrew Sutton \<asutton@uakron.edu\>
 
-Date: 2015-09-26
+Date: 2015-10-02
 
-Document number: P0118R0
+Document number: N4554
 
 
 
