@@ -89,14 +89,17 @@ void is_odd(T n)
 With the introduction of abbreviated function templates in concepts, it becomes
 more difficult to distinguish between non-overload and overloaded names. In
 other words, to pass `is_odd` as a predicate to say, `find_if`, you would
-have to wrap it in a lambda or instantiate it.
+have to wrap it in a lambda or instantiate it. Developers should
+not be required to know about every declaration (or absence of declarations)
+just to use a function. State what you want, and let the compiler find what
+you need.
 
 ## Proposal
 
-This paper proposes that all names referring to sets of functions and function
-templates work in exactly the same ways in all contexts. Fortunately, that
-problem is already solved for function calls. Now, we just need to solve the
-problem of passing overload sets as function arguments.
+This paper proposes to allow passing overloaded names as arguments
+to generic algorithms. The reason for doing so is to give equal treatment,
+in terms of a common use pattern, to names that refer to individual functions, 
+function templates, and sets of thereof. 
 
 The solution is straightforward. To support this feature, we extend template 
 argument deduction to handle the case where an argument is an *id-expression* 
@@ -170,7 +173,7 @@ Yields this lambda:
 [](auto&&... args) 
   -> decltype(N::f(std::forward<decltype(args)>(args)...))
 {
-  return ;
+  return N::f(std::forward<decltype(args)>(args)...);
 }
 ```
 
@@ -213,6 +216,7 @@ void sort(first, last, operator>);
 
 would yield this lambda:
 
+``` {.cpp}
 [](auto&& a, auto&& b) 
   -> decltype(operator>(std::forward<decltype(a)>(a), 
                         std::forward<decltype(b)>(b))
@@ -289,17 +293,23 @@ struct polymprhic_lambda
 
 Here `op` stands for the unary/binary operator.
 
-The function call and index operators would have the following forms:
+The lambda used for the function call operator `(())` is this:
 
 ``` {.cpp}
-[](auto&& f, auto&&... arg) -> decltype(auto)
+[](auto&& f, auto&&... arg) 
+  -> decltype(std::forward<decltype(f)>(f)(std::forward<decltype(arg)>(args)...))
 {
   return std::forward<decltype(f)>(f)(std::forward<decltype(arg)>(args)...);
 }
+```
 
-[](auto&& x, auto&& y) -> decltype(auto)
+And for the subscript operator `([])`, the lambda is this:
+
+``` {.cpp}
+[](auto&& x, auto&& y) 
+  -> decltype(std::forward<decltype(x)>(x)[std::forward<decltype(y)>(y))
 {
-  return std::forward<decltype(x)>(x)[std::forward<decltype(y)>(y)...];
+  return std::forward<decltype(x)>(x)[std::forward<decltype(y)>(y)];
 }
 ```
 
@@ -346,16 +356,17 @@ Add the following after paragraphs at the end of this section.
 
 TODO: Finish writing the rules for *operator-function-id*s.
 
-If `P` has type `T` where `T` is a type template parameter and `A` is an
+If `P` has type `T` where `T` is a type template parameter, and `A` is an
 *id-expression* that names a set of overloaded functions, deduction is
 performed against the expression defined by the following rules.
 
 - If `A` is an *identifier* `f`, that expression is
   the *lambda-expression*:
     ``` {.cpp}
-    [](auto&&... args)
+    [](auto&&... args) 
+      -> decltype(f(static_cast<decltype(args)>(args)...))
     {
-      return f(std::forward<decltype(args)>(args)...);
+      return f(static_cast<decltype(args)>(args)...);
     }
     ```
 
@@ -363,8 +374,9 @@ performed against the expression defined by the following rules.
   the *lambda-expression*:
     ``` {.cpp}
     [](auto&&... args)
+      -> decltype(N::f(static_cast<decltype(args)>(args)...))
     {
-      return N::f(std::forward<decltype(args)>(args)...);
+      return N::f(static_cast<decltype(args)>(args)...);
     }
     ```
 
@@ -372,7 +384,7 @@ performed against the expression defined by the following rules.
     ``` {.cpp}
     [](auto&& f, auto...&& args) -> decltype(auto)
     {
-      return std::forward<decltype(a)>(a)(std::forward<decltype(args)>(args)...);
+      return static_cast<decltype(a)>(a)(static_cast<decltype(args)>(args)...);
     }
     ```
 
@@ -380,7 +392,7 @@ performed against the expression defined by the following rules.
     ``` {.cpp}
     [](auto&& a, auto&& b) -> decltype(auto)
     {
-      return std::forward<decltype(a)>(a)[std::forward<decltype(b)>(b)];
+      return static_cast<decltype(a)>(a)[static_cast<decltype(b)>(b)];
     }
     ```
 
@@ -392,14 +404,16 @@ performed against the expression defined by the following rules.
     struct closure_type
     {
       template<typename T>
-      T&& operator()(T&& x) const -> decltype(auto)
+      auto operator()(T&& x) const 
+        -> decltype(@ static_cast<T>(x))
       {
-        return @ std::forward<T>(x);
+        return @ static_cast<T>(x);
       }
       template<typename T, typename U>
-      T&& operator()(T&& a, U&& b) const -> decltype(auto)
+      auto operator()(T&& a, U&& b) const 
+        -> decltype(static_cast<T>(a) @ static_cast<U>(b))
       {
-        return std::forward<T>(a) @ std::forward<U>(b);
+        return static_cast<T>(a) @ static_cast<U>(b);
       }
     }
     ```
@@ -408,9 +422,10 @@ performed against the expression defined by the following rules.
 - Otherwise, if A is any other *operator-expression-id*, that 
   *lambda-expression* is
     ``` {.cpp}
-    [](auto&& a, auto&& b) -> decltype(auto)
+    [](auto&& a, auto&& b) 
+      -> decltype(static_cast<decltype(a)>(a) @ static_cast<decltype(b)>(b))
     {
-      return std::forward<decltype(a)>(a) @ std::forward<decltype(b)>(b);
+      return static_cast<decltype(a)>(a) @ static_cast<decltype(b)>(b);
     }
     ```
 
@@ -474,7 +489,6 @@ lambda expressions from operators.
 ## Acknowledgments
 
 Thanks to Florian Weber for comments on early drafts of this paper. Thanks
-to Tomasz Kamiński for his suggestions about return type deduction and class
-member access.
-
+to Tomasz Kamiński for his suggestions about return type deduction, class
+member access, and editorial support.
 
